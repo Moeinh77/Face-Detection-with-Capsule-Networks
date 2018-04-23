@@ -1,6 +1,6 @@
 # Bachelor Thesis
-Notes, LaTeX and code concerning my Bachelor's Thesis on post-CNN Computer 
-Vision approaches.
+Notes, LaTeX and code concerning my Bachelor's Thesis on Face Recognition wiht
+Capsule Networks.
 
 
 ## Dependencies
@@ -14,8 +14,6 @@ setup a virtual environment and install
  - scipy
  - matplotlib
  - pandas
- - torch
- - torchvision
  - ipykernel
 
 To make these packages accessible in a Jupyter Notebook, run 
@@ -23,4 +21,8 @@ To make these packages accessible in a Jupyter Notebook, run
 ```python -m ipykernel install --user --name=Bachelor-Thesis```
 
 within the activated virtualenv. This will create an IPython Kernel named 
-`Bachelor-Thesis` to which all Notebooks in this repo default. 
+`Bachelor-Thesis` to which all Notebooks in this repo default.
+
+*You will still have to manually install TensorFlow on your system**. This is 
+a hack to allow running the project on machines both with and without TensorFlow
+GPU support.

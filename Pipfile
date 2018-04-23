@@ -9,12 +9,9 @@ name = "pypi"
 
 ipykernel = "*"
 numpy = "*"
-torch = "*"
-torchvision = "*"
 scipy = "*"
 matplotlib = "*"
 pandas = "*"
-tensorflow = "*"
 
 
 [dev-packages]
