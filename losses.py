@@ -2,9 +2,6 @@ from functools import reduce
 
 import tensorflow as tf
 
-import layers
-# TODO move layers.norm to utils.norm
-
 def margin_loss(
     labels_one_hot, 
     probabilities, 
