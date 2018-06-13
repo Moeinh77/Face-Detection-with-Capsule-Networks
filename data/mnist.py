@@ -5,6 +5,8 @@ from urllib.request import urlretrieve
 
 import numpy as np
 
+from data.utils import InMemoryDataset as Dataset
+
 TRAIN_IMAGES_URL = 'http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'
 TRAIN_LABELS_URL = 'http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'
 
@@ -87,24 +89,3 @@ def _extract_labels(path):
         labels = np.frombuffer(f.read(), dtype=np.uint8)
 
     return labels
-
-
-class Dataset:
-
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-
-    def batch(self, batch_size):
-        index = 0
-
-        while True:
-            if index + batch_size > len(self.X):
-                yield self.X[index:], self.y[index:]
-                return
-            else:
-                next_index = index + batch_size
-                yield self.X[index:next_index], self.y[index:next_index]
-
-                index = next_index

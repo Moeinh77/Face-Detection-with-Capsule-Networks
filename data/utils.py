@@ -19,3 +19,28 @@ def peek(dataset, num_samples=5):
         plt.axis("off")
 
     plt.show()
+    
+
+class InMemoryDataset:
+
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+
+    def batch(self, batch_size):
+        index = 0
+
+        while True:
+            if index + batch_size > len(self.X):
+                yield self.X[index:], self.y[index:]
+                return
+            else:
+                next_index = index + batch_size
+                yield self.X[index:next_index], self.y[index:next_index]
+
+                index = next_index
+
+
+    def __len__(self):
+        return len(self.X)
