@@ -1,6 +1,27 @@
 import tensorflow as tf
 import numpy as np
 
+
+def train(
+    session,
+    train_step,
+    inputs,
+    dataset,
+    batch_size,
+    feed_dict={},
+    metrics=[],
+    report_every=None,
+    report_hook=None):
+    """Performs one epoch of training.
+    
+    inputs: tensors that will be fed from the dataset in that exact order
+    feed_dict: additional feed during training (eg. step_size)
+    metrics: tensors to evaluate
+    report_hook: callback function, will be fed (session, iteration, iterations, eval metrics)
+    """
+
+    pass
+
 def epoch(
     session, 
     inputs, 
