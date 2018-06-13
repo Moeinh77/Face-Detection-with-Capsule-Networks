@@ -1,6 +1,15 @@
+import os
+import pickle
+from datetime import datetime
+
 import tensorflow as tf
 import numpy as np
 
+def reset(seed=42):
+    tf.set_random_seed(seed)
+    np.random.seed(seed)
+
+    tf.reset_default_graph()
 
 def evaluate(
     session,
@@ -49,3 +58,48 @@ def evaluate(
     # Return avg metrics
     if metrics:
         return [np.mean(metric) for metric in metric_evaluations]
+
+
+def new_experiment(root_logdir='./experiments', experiment=None, force=False):
+    logdir = os.path.join(
+        root_logdir,
+        experiment or datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
+    )
+
+    if os.path.isdir(logdir):
+        if force:
+            shutil.rmtree(logdir)
+        else:
+            raise ValueError(
+                'Log directory already exists. Use force=True to overwrite'
+            )
+
+    os.makedirs(logdir, exist_ok=True)
+
+    return logdir
+
+
+class Logger:
+
+    def __init__(self, logdir):
+        self.log_file = os.path.join(logdir, 'log.pickle')
+        self.log = {}
+
+        if os.path.isfile(self.log_file):
+            self.log = pickle.load(open(self.log_file, 'rb'))
+
+
+    def add(self, key, value, timestamp):
+        if not key in self.log:
+            self.log[key] = []
+
+        self.log[key].append((timestamp, value))
+
+
+    def get(self, key):
+        return self.log[key]
+
+
+    def write(self):
+        pickle.dump(self.log, open(self.log_file, 'wb'))
+
