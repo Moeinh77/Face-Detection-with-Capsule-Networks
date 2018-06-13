@@ -32,7 +32,7 @@ class InMemoryDataset:
         index = 0
 
         while True:
-            if index + batch_size > len(self.X):
+            if index + batch_size >= len(self.X):
                 yield self.X[index:], self.y[index:]
                 return
             else:

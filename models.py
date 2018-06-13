@@ -2,12 +2,12 @@ import tensorflow as tf
 import numpy as np
 
 
-def train(
+def evaluate(
     session,
-    train_step,
     inputs,
     dataset,
     batch_size,
+    train_step=None,
     feed_dict={},
     metrics=[],
     report_every=None,
@@ -19,57 +19,33 @@ def train(
     metrics: tensors to evaluate
     report_hook: callback function, will be fed (session, iteration, iterations, eval metrics)
     """
-
-    pass
-
-def epoch(
-    session, 
-    inputs, 
-    train_step, 
-    dataset,
-    batch_size,
-    feed_dict={}, 
-    metrics=[],
-    print_every=None
-    report=None
-    report_formatter=lambda x: x):
-    # Performs one epoch of training
-
-    metrics_log = [[] for _ in metrics]
     
+    metric_evaluations = [[] for _ in metrics]
     iterations = len(dataset) // batch_size
 
     for iteration, batch_inputs in enumerate(dataset.batch(batch_size)):
-        
-        train_feed = {**dict(zip(inputs, batch_inputs)), **feed_dict} 
-        
-        # Run a trianing step
-        session.run(train_step, feed_dict=train_feed)
 
+        # Run a training step with the current batch
+        feed = {**dict(zip(inputs, batch_inputs)), **feed_dict}
+
+        if train_step:
+            session.run(train_step, feed_dict=feed)
+        
         # Evaluate metrics
-        evaluations = session.run(metrics, feed_dict=train_feed)
-            
-        for index, evaluation in enumerate(evaluations):
-            metrics_log[index].append(evaluation)
+        results = session.run(metrics, feed_dict=feed)
 
-        # Report progress
-        if print_every and (iteration + 1) % print_every == 0:
-            msg = '\rTrain | Iteration {}/{} ({:.1f}%) | '.format(
-                iteration + 1, 
-                iterations,
-                (iteration + 1) * 100 / iterations
-            )
+        for index, result in enumerate(results):
+            metric_evaluations[index].append(result)
 
-            if report:
-                report_args = report_formatter(evaluations)
-                msg += report.format(report_args)
+        # Print progress report
+        if report_every and report_hook:
+            if (iteration + 1) % report_every == 0:
 
-            print(msg, end="")
+                print(
+                    report_hook(session, iteration + 1, iterations, *results),
+                    end=''
+                )
 
-        return [np.mean(log) for log in metrics_log]
-
-
-def validate(session, feed_dict, metrics):
-    return session.run(metrics, feed_dict=feed_dict)
-
-
+    # Return avg metrics
+    if metrics:
+        return [np.mean(metric) for metric in metric_evaluations]
