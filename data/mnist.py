@@ -42,13 +42,23 @@ def load_data(datasets_dir='datasets', force=False):
         os.remove(test_images_path)
         os.remove(test_labels_path)
 
+        # Normalize to [0,1]
+        X_train = X_train / 256
+        X_val = X_val / 256
+        X_test = X_test / 256
+
+        # Reshape to images
+        X_train = X_train.reshape([-1, 28, 28, 1])
+        X_val = X_val.reshape([-1, 28, 28, 1])
+        X_test = X_test.reshape([-1, 28, 28, 1])
+
         # Save data to disk
         np.save(data_file, 
             [(X_train, y_train), (X_val, y_val), (X_test, y_test)])
     else:
         (X_train, y_train), (X_val, y_val), (X_test, y_test) = np.load(data_file)
 
-    return (X_train, y_train), (X_val, y_val), (X_test, y_test)
+    return Dataset(X_train, y_train), Dataset(X_val, y_val), Dataset(X_test, y_test)
         
 
 def _download(url, datasets_dir):
@@ -77,3 +87,24 @@ def _extract_labels(path):
         labels = np.frombuffer(f.read(), dtype=np.uint8)
 
     return labels
+
+
+class Dataset:
+
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+
+
+    def batch(self, batch_size):
+        index = 0
+
+        while True:
+            if index + batch_size > len(self.X):
+                yield self.X[index:], self.y[index:]
+                return
+            else:
+                next_index = index + batch_size
+                yield self.X[index:next_index], self.y[index:next_index]
+
+                index = next_index
