@@ -1,13 +1,14 @@
 from os.path import join
 
 import tensorflow as tf
+import numpy as np
 
 from caps import layers, losses
 from data import mnist
 from utils import evaluate, reset, new_experiment, Logger
 
-BATCH_SIZE = 24
-NUM_EPOCHS = 2
+BATCH_SIZE = 256
+NUM_EPOCHS = 50
 
 
 def model():
@@ -64,7 +65,7 @@ def model():
     alpha = tf.constant(0.0005, name='alpha')
     loss = margin_loss + alpha * reconstruction_loss
 
-    return [X, y], [loss, accuracy]
+    return [X, y], [loss, accuracy], [mask_with_labels]
 
 
 def train_hook(session, iteration, iterations, loss, accuracy):
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     
     # Build model
     reset()
-    inputs, [loss, accuracy] = model()
+    inputs, [loss, accuracy], [mask_with_labels] = model()
 
     # Optimize
     optimizer = tf.train.AdamOptimizer()
@@ -114,8 +115,8 @@ if __name__ == '__main__':
 
         best_val_loss = np.infty
 
-        for epoch in range(num_epochs):
-            print('[Epoch {}/{}]'.format(epoch + 1, num_epochs))
+        for epoch in range(NUM_EPOCHS):
+            print('[Epoch {}/{}]'.format(epoch + 1, NUM_EPOCHS))
 
             # TRAINING PHASE
             train_loss, train_accuracy = evaluate(
@@ -123,7 +124,7 @@ if __name__ == '__main__':
                 inputs=inputs,
                 dataset=train_data,
                 train_step=train_step,
-                batch_size=batch_size,
+                batch_size=BATCH_SIZE,
                 feed_dict={mask_with_labels: True},
                 metrics=[loss, accuracy],
                 report_every=10,
@@ -146,7 +147,7 @@ if __name__ == '__main__':
                 session=sess,
                 inputs=inputs,
                 dataset=val_data,
-                batch_size=batch_size,
+                batch_size=BATCH_SIZE,
                 metrics=[loss, accuracy],
                 report_every=10,
                 report_hook=validation_hook
