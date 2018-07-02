@@ -28,7 +28,7 @@ def download_from_webserver(url, destination):
     response = requests.get(url, stream=True)
     save_response_content(response, download_path)
 
-    return filename
+    return download_path
 
 
 def download_from_google_drive(drive_id, destination):
