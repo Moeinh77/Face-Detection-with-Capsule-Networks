@@ -1,6 +1,16 @@
+import requests
+
 import matplotlib.pyplot as plt
 
+GOOGLE_DRIVE_URL = 'https://docs.google.com/uc?export=download'
 
+
+def download_from_google_drive(dest, ):
+	session = requests.Session()
+	response = session.get(GOOGLE_DRIVE_URL, params={'id': drive_id})
+
+
+# TODO is this still relevant?
 def peek(dataset, num_samples=5):
 
     # Get the first num_samples iterms from the dataset
@@ -19,7 +29,7 @@ def peek(dataset, num_samples=5):
         plt.axis("off")
 
     plt.show()
-    
+
 
 class InMemoryDataset:
 
@@ -44,3 +54,4 @@ class InMemoryDataset:
 
     def __len__(self):
         return len(self.X)
+
