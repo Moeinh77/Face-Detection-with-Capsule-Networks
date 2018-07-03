@@ -47,7 +47,7 @@ def maybe_download(datasets_path='datasets', force=False):
     data_path = join(datasets_path, 'wider_face')
 
     if not exists(data_path) or force:
-        utils.force_dir(data_path)
+        force_dir(data_path)
     
         # Download images
         for name, drive_id in (TRAIN_DATA, VAL_DATA, TEST_DATA):
