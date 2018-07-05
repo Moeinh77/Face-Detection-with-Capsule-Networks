@@ -58,13 +58,98 @@ def localize(boxes, image_extent, grid_resolution, name=None):
             name='extents_localized'
         )
 
+        # Take the square root of widht/height so that large boxes don't 
+        # dominate the loss
+
+        extents_localized_sqrt = tf.sqrt(
+            extents_localized,
+            name='extents_localized_sqrt',
+        )
+
         boxes_localized = tf.concat(
-            [centers_localized, extents_localized], 
+            [centers_localized, extents_localized_sqrt], 
             axis=-1, 
             name='boxes_localized'
         )
 
     return boxes_localized, cell_idx
+
+
+# Converts a (batch_size, S, S, B, 4) tensor to a (batch_size * S * S * B, 4) 
+# tensor in long format with global boxes and (batch_size * S * S * B) sample 
+# index
+# Assumes uniform image_extents and grid resolutions
+def globalize(boxes, image_extent, name=None):
+    with tf.variable_scope(name, default_name='globalize'):
+        centers, extents = tf.split(boxes, 2, axis=-1)
+
+        batch_size = tf.shape(boxes)[0]
+        _, grid_resolution, _, num_predictors, _ = boxes.shape.as_list()
+        
+        # Compute the extent of one grid cell in pixels. See localize()
+        cell_extent = np.ceil(image_extent / grid_resolution)
+
+        # Compute box centers in absolute pixels
+        cell_range = tf.range(
+            grid_resolution, 
+            dtype=tf.float32,
+            name='cell_range')
+
+        cell_index_x = tf.tile(
+            tf.reshape(cell_range, [1, grid_resolution, 1, 1, 1]),
+            multiples=[batch_size, 1, grid_resolution, num_predictors, 1],
+            name='cell_index_x'
+        )
+
+        cell_index_y = tf.tile(
+            tf.reshape(cell_range, [1, 1, grid_resolution, 1, 1]),
+            multiples=[batch_size, grid_resolution, 1, num_predictors, 1],
+            name='cell_index_y'
+        )
+
+        cell_index = tf.concat(
+            [cell_index_x, cell_index_y],
+            axis=-1,
+            name='cell_index'
+        )
+
+        centers_globalized = (centers * cell_extent) + cell_index * cell_extent
+
+        # Compute box extents in absolute pixels
+        extents_globalized = tf.multiply(
+            tf.square(extents), 
+            tf.cast(image_extent, dtype=tf.float32), 
+            name='extents_globalized'
+        )
+
+        boxes_globalized = tf.concat(
+            [centers_globalized, extents_globalized],
+            axis=-1,
+            name='boxes_globalized'
+        )
+
+        boxes_globalized_long = tf.reshape(
+            boxes_globalized,
+            [-1, 4],
+            name='boxes_globalized_long'
+        )
+
+        # Compute sample index for long representation
+        sample_range = tf.range(batch_size, name='sample_range')
+
+        sample_index = tf.tile(
+            tf.reshape(sample_range, [batch_size, 1, 1, 1]),
+            multiples=[1, grid_resolution, grid_resolution, num_predictors],
+            name='sample_index'
+        )
+
+        sample_index_long = tf.reshape(
+            sample_index,
+            [-1],
+            name='sample_index_long'
+        )
+
+    return boxes_globalized_long, sample_index_long
 
 
 # Assumes centered boxes

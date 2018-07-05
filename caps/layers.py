@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def primaryCaps(inputs, caps, dims, kernel_size, strides=1, name=None):
+def primaryCaps(inputs, filters, dims, kernel_size, strides=1, name=None):
     """Primary capsule layer
     
     TODO: expand documentation
@@ -18,7 +18,7 @@ def primaryCaps(inputs, caps, dims, kernel_size, strides=1, name=None):
 
         conv = tf.layers.conv2d(
             inputs,
-            filters=caps*dims,
+            filters=filters*dims,
             kernel_size=kernel_size,
             strides=strides,
             padding='VALID',
@@ -31,7 +31,7 @@ def primaryCaps(inputs, caps, dims, kernel_size, strides=1, name=None):
 
         capsules = tf.reshape(
             conv, 
-            [-1, height, width, caps, dims], 
+            [-1, height, width, filters, dims], 
             name='capsules'
         )
 
@@ -97,8 +97,8 @@ def denseCaps(inputs, caps, dims, iterations=2, name=None):
             inputs_filters, 
             filters_out=caps, 
             dims_out=dims, 
-            rf_sizes=(1, 1), 
-            rf_strides=(1, 1), 
+            kernel_size=(1, 1), 
+            strides=(1, 1), 
             iterations=iterations
         )
 
@@ -174,8 +174,8 @@ def convCaps(
         inputs, 
         filters, 
         dims, 
-        rf_size, 
-        rf_stride, 
+        kernel_size, 
+        strides, 
         padding='VALID',
         iterations=2, 
         name=None):
@@ -207,8 +207,8 @@ def convCaps(
             inputs, 
             filters, 
             dims, 
-            (rf_size, rf_size),
-            (rf_stride, rf_stride),
+            (kernel_size, kernel_size),
+            (strides, strides),
             padding,
             iterations
         )
@@ -226,8 +226,8 @@ def _caps_conv2d(
         inputs, 
         filters_out, 
         dims_out, 
-        rf_sizes, 
-        rf_strides, 
+        kernel_size, 
+        strides, 
         padding,
         iterations):
 
@@ -252,8 +252,8 @@ def _caps_conv2d(
         inputs, 
         filters_out, 
         dims_out, 
-        rf_sizes, 
-        rf_strides,
+        kernel_size, 
+        strides,
         padding
     )
         
@@ -266,7 +266,7 @@ def _caps_conv2d(
     return outputs
 
 
-def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides, padding):
+def _predict(inputs, filters_out, dims_out, kernel_size, strides, padding):
     """Compute predictions for higher-level capsules on receptive fields"""
     with tf.variable_scope('predictions'):
 
@@ -287,8 +287,8 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides, padding):
         # flattened patches
         inputs_patches = tf.extract_image_patches(
             inputs_flat,
-            ksizes=[1, rf_sizes[0], rf_sizes[1], 1],
-            strides=[1, rf_strides[0], rf_strides[1], 1],
+            ksizes=[1, kernel_size[0], kernel_size[1], 1],
+            strides=[1, strides[0], strides[1], 1],
             rates=[1,1,1,1],
             padding=padding
         )
@@ -297,7 +297,7 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides, padding):
         _, height_out, width_out, _ = inputs_patches.shape.as_list()
 
         # number of capsule activations per patch
-        caps_per_patch = rf_sizes[0] * rf_sizes[1] * filters_in
+        caps_per_patch = kernel_size[0] * kernel_size[1] * filters_in
 
         # Reshape inputs patches into an (batch_size, height, width) array of 
         # `caps_per_patch` `dims_in-dimensional` column vectors. To explicitly 

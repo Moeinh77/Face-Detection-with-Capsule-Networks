@@ -3,61 +3,108 @@ import tensorflow as tf
 from caps import layers
 from yolophem import utils
 
-def simplistic(img_size):
+def simplistic(
+    image_size, 
+    network_config, 
+    feature_size, 
+    num_cells, 
+    num_predictors):
     
-    # Problem with larger image sizes: we don't use subsampling in CapsNets,
-    # thus it really takes a while until feature maps are at a comfortable size
-
+    ## INPUTS 
     X = tf.placeholder(
-        shape=[None, img_size, img_size, 3], 
+        shape=[None, image_size, image_size, 3], 
         dtype=tf.float32, 
         name='X'
     )
 
-    y = tf.placeholder(shape=[None, 4], dtype=tf.int64, name='y')
+    y = tf.placeholder(shape=[None, 5], dtype=tf.int64, name='y')
 
-    conv1 = tf.layers.conv2d(
-        X,
-        filters=64,
-        kernel_size=9,
-        strides=2,
-        padding='valid',
-        name='conv1'
+
+    ## Network
+    network_output = _generate_network(X, network_config)
+    _, height, width, filters, dims = network_output.shape.as_list()
+
+
+    network_output_flat = tf.reshape(
+        network_output, 
+        [-1, height*width*filters*dims],
+        name='network_output_flat'
+    )
+    
+    feature_vector = tf.layers.dense(
+        network_output_flat,
+        feature_size,
+        activation=tf.nn.relu,
+        name='feature_vector'
     )
 
-    primaryCaps = layers.primaryCaps(
-        conv1,
-        caps=32,
-        dims=8,
-        kernel_size=9,
-        strides=2,
+    # Predictions
+    predictions_flat = tf.layers.dense(
+        feature_vector,
+        num_cells * num_cells * num_predictors * 4,
+        name='predictions_flat'
+    )
+
+    predictions = tf.reshape(
+        predictions_flat,
+        [-1, num_cells, num_cells, num_predictors, 4],
+        name='predictions'
+    )
+
+    # Confidences
+    confidences_flat = tf.layers.dense(
+        feature_vector,
+        num_cells * num_cells * num_predictors,
+        name='confidences_flat'
+    )
+
+    confidences = tf.reshape(
+        confidences_flat,
+        [-1, num_cells, num_cells, num_predictors],
+        name='confidences'
+    )
+
+    ## LOSS
+
+    loss = yolophem_loss(predictions, confidences, y, image_size, name='loss')
+
+
+    ## MODEL PREDICTIONS
+    centered_outputs, sample_idx = utils.globalize(predictions, image_size)
+    outputs = utils.uncenter(centered_outputs)
+
+    return [X, y], [outputs, sample_idx], loss
+
+
+def _generate_network(inputs, config):
+    
+    # Convolutional layers
+    for idx, conf in enumerate(config['conv']):
+        inputs = tf.layers.conv2d(
+            inputs, 
+            **conf, 
+            name='conv' + str(idx + 1)
+        )
+
+    # Primary capsules
+    inputs = layers.primaryCaps(
+        inputs,
+        **config['primaryCaps'],
         name='primaryCaps'
     )
 
-    convCaps1 = layers.convCaps(
-        primaryCaps,
-        filters=32,
-        dims=8,
-        rf_size=9,
-        rf_stride=1,
-        name='convCaps1'
-    )
+    # Convolutional capsules
+    for idx, conf in enumerate(config['convCaps']):
+        inputs = layers.convCaps(
+            inputs,
+            **conf,
+            name='convCaps' + str(idx + 1)
+        )
 
-    convCaps2 = layers.convCaps(
-        convCaps1,
-        filters=16,
-        dims=12,
-        rf_size=3,
-        rf_stride=1,
-        name='convCaps2'
-    )
-    
-
-    return [X, y], primaryCaps, convCaps1
+    return inputs
 
 
-
-def loss(
+def yolophem_loss(
     predictions, 
     confidences, 
     labels_long, 
