@@ -176,6 +176,7 @@ def convCaps(
         dims, 
         rf_size, 
         rf_stride, 
+        padding='VALID',
         iterations=2, 
         name=None):
     """2D convolutional capsule layer.
@@ -208,6 +209,7 @@ def convCaps(
             dims, 
             (rf_size, rf_size),
             (rf_stride, rf_stride),
+            padding,
             iterations
         )
 
@@ -226,6 +228,7 @@ def _caps_conv2d(
         dims_out, 
         rf_sizes, 
         rf_strides, 
+        padding,
         iterations):
 
 
@@ -245,7 +248,14 @@ def _caps_conv2d(
     # This can be thought of as a (batch_size, H, W, filters_out)-shaped
     # volume containing linearized patches with `caps_per_patch` 
     # `dims_out`-dimensional column vectors.
-    predictions = _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides)
+    predictions = _predict(
+        inputs, 
+        filters_out, 
+        dims_out, 
+        rf_sizes, 
+        rf_strides,
+        padding
+    )
         
     # Compute higher-level capsule outputs from lower-level predictions via
     # "routing by agreement".
@@ -256,7 +266,7 @@ def _caps_conv2d(
     return outputs
 
 
-def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
+def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides, padding):
     """Compute predictions for higher-level capsules on receptive fields"""
     with tf.variable_scope('predictions'):
 
@@ -264,12 +274,12 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
 
         # Extract shape of the input tensor
         batch_size = tf.shape(inputs)[0]
-        _, height, width, filters_in, dims_in = inputs.shape.as_list()
+        _, height_in, width_in, filters_in, dims_in = inputs.shape.as_list()
 
         # Concatenate capsule activations accross all input filters
         inputs_flat = tf.reshape(
             inputs, 
-            shape=[-1, height, width, filters_in * dims_in],
+            shape=[-1, height_in, width_in, filters_in * dims_in],
             name='inputs_flat'
         )
 
@@ -280,8 +290,11 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
             ksizes=[1, rf_sizes[0], rf_sizes[1], 1],
             strides=[1, rf_strides[0], rf_strides[1], 1],
             rates=[1,1,1,1],
-            padding='SAME'
+            padding=padding
         )
+
+        # Extract shape of output tensor
+        _, height_out, width_out, _ = inputs_patches.shape.as_list()
 
         # number of capsule activations per patch
         caps_per_patch = rf_sizes[0] * rf_sizes[1] * filters_in
@@ -293,7 +306,7 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
         # along the `out_filters` axis
         inputs_patches = tf.reshape(
             inputs_patches,
-            shape=[-1, height, width, 1, caps_per_patch, dims_in, 1],
+            shape=[-1, height_out, width_out, 1, caps_per_patch, dims_in, 1],
             name='inputs_patches'
         )
 
@@ -303,6 +316,7 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
             multiples=[1, 1, 1, filters_out, 1, 1, 1],
             name='inputs_patches_tiled'
         )
+
 
         # Create a (output_caps, kernel_size * kernel_size * input_caps) array 
         # of (output_dims x input_dims) transformation matrices. This set of 
@@ -316,16 +330,16 @@ def _predict(inputs, filters_out, dims_out, rf_sizes, rf_strides):
             name='W'
         )
 
+
         # The three additional dummy dimensions in the 'front' of the tensor's
         # shape are used to replicate the shared transformation matrices
         # accross all receptive fields in all samples in the batch.
     
         W_tiled = tf.tile(
             W, 
-            multiples=[batch_size, height, width, 1, 1, 1, 1], 
+            multiples=[batch_size, height_out, width_out, 1, 1, 1, 1], 
             name='W_tiled'
         )
-
 
         # Matrix multiplication leaves us with a tensor of shape identical to 
         # `inputs_patches_tiled`, only that capsule activations are now 

@@ -1,9 +1,63 @@
 import tensorflow as tf
 
+from caps import layers
 from yolophem import utils
 
+def simplistic(img_size):
+    
+    # Problem with larger image sizes: we don't use subsampling in CapsNets,
+    # thus it really takes a while until feature maps are at a comfortable size
 
-def yolophem_loss(
+    X = tf.placeholder(
+        shape=[None, img_size, img_size, 3], 
+        dtype=tf.float32, 
+        name='X'
+    )
+
+    y = tf.placeholder(shape=[None, 4], dtype=tf.int64, name='y')
+
+    conv1 = tf.layers.conv2d(
+        X,
+        filters=64,
+        kernel_size=9,
+        strides=2,
+        padding='valid',
+        name='conv1'
+    )
+
+    primaryCaps = layers.primaryCaps(
+        conv1,
+        caps=32,
+        dims=8,
+        kernel_size=9,
+        strides=2,
+        name='primaryCaps'
+    )
+
+    convCaps1 = layers.convCaps(
+        primaryCaps,
+        filters=32,
+        dims=8,
+        rf_size=9,
+        rf_stride=1,
+        name='convCaps1'
+    )
+
+    convCaps2 = layers.convCaps(
+        convCaps1,
+        filters=16,
+        dims=12,
+        rf_size=3,
+        rf_stride=1,
+        name='convCaps2'
+    )
+    
+
+    return [X, y], primaryCaps, convCaps1
+
+
+
+def loss(
     predictions, 
     confidences, 
     labels_long, 
