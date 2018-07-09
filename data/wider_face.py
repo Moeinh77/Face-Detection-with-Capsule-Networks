@@ -39,8 +39,12 @@ def load_data(datasets_path='datasets'):
     maybe_preprocess(datasets_path)
 
     metadata = pickle.load(open(metadata_path, 'rb'))
-    return {k: StreamDataset(*v) for k,v in metadata.items()}
 
+    return [
+        StreamDataset(*metadata['train']),
+        StreamDataset(*metadata['val']),
+        StreamDataset(*metadata['test'])
+    ]
 
 
 def maybe_download(datasets_path='datasets', force=False):
@@ -123,7 +127,10 @@ def _preprocess_annotations(annotations_file_path, source_path):
             # Read annotations for each face
             for _ in range(num_faces):
                 face_str = f.readline().strip(' \n')
-                img_faces.append(Face(*map(int, face_str.split(' '))))
+
+                # Parse the entire face (but only save the bounding box for now)
+                face = Face(*map(int, face_str.split(' ')))
+                img_faces.append((face.x, face.y, face.width, face.height))
 
             img_paths.append(join(source_path, img_path))
             faces.append(img_faces)

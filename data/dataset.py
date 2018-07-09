@@ -66,7 +66,6 @@ class StreamDataset(Dataset):
         return len(self.img_paths)
 
     def _load(self, start, end):
-        print('Marker', start, end)
         if end:
             img_paths = self.img_paths[start:end]
             labels = self.labels[start:end]
