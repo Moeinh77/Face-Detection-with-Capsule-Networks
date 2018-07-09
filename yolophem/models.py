@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from caps import layers
+from caps.utils import norm
 from yolophem import utils
 
 
@@ -80,27 +81,69 @@ config_v1 = {
     ]
 }
 
+def adapted(config):
+    
+    image_size = config['image_size']
+    num_cells = config['num_cells']
+    num_predictors = config['num_predictors']
+
+    ## INPUTS
+    X, y = _inputs(config)
+
+    ## NETWORK
+    network_output = _network(X, config)
+    _, height, width, filters, dims = network_output.shape.as_list()
+
+    ## PREDICTIONS
+    network_output_flat = tf.reshape(
+        network_output,
+        [-1, 1, height * width * filters, dims],
+        name='network_output_flat'
+    )
+
+    predictions_flat = tf.layers.conv2d(
+        network_output_flat,
+        filters=4,
+        kernel_size=1,
+        strides=1,
+        padding='SAME',
+        activation=None,
+        name='predictions_flat'
+    )
+
+    predictions = tf.reshape(
+        predictions_flat,
+        [-1, num_cells, num_cells, num_predictors, 4],
+        name='predictions'
+    )
+
+    ## CONFIDENCES
+    confidences = norm(network_output)
+
+    ## LOSS
+    loss = yolophem_loss(predictions, confidences, y, image_size, name='loss')
+
+    ## OUTPUTS
+    outputs = _outputs(predictions, confidences, config)
+    
+    # Inputs, Outputs, loss
+    return [X, y], outputs, loss
+
 
 def naive(config, feature_size):
 
     image_size = config['image_size']
     num_cells = config['num_cells']
     num_predictors = config['num_predictors']
-    
-    ## INPUTS 
-    X = tf.placeholder(
-        shape=[None, image_size, image_size, 3], 
-        dtype=tf.float32, 
-        name='X'
-    )
 
-    y = tf.placeholder(shape=[None, 5], dtype=tf.int64, name='y')
+    ## INPUTS
+    X, y = _inputs(config)
 
-
-    ## Network
-    network_output = _generate_network(X, config)
+    ## NETWORK
+    network_output = _network(X, config)
     _, height, width, filters, dims = network_output.shape.as_list()
 
+    ## FEATURES
     network_output_flat = tf.reshape(
         network_output, 
         [-1, height*width*filters*dims],
@@ -114,7 +157,7 @@ def naive(config, feature_size):
         name='feature_vector'
     )
 
-    # Predictions
+    ## PREDICTIONS
     predictions_flat = tf.layers.dense(
         feature_vector,
         num_cells * num_cells * num_predictors * 4,
@@ -127,7 +170,7 @@ def naive(config, feature_size):
         name='predictions'
     )
 
-    # Confidences
+    ## CONFIDENCES
     confidences_flat = tf.layers.dense(
         feature_vector,
         num_cells * num_cells * num_predictors,
@@ -143,29 +186,27 @@ def naive(config, feature_size):
     ## LOSS
     loss = yolophem_loss(predictions, confidences, y, image_size, name='loss')
 
-    ## MODEL OUTPUTS
-    predictions_globalized = utils.uncenter(
-        utils.globalize(predictions, image_size),
-        name='predictions_globalized'
-    )
-
-    predictions_out = tf.reshape(
-        predictions_globalized,
-        [-1, num_cells * num_cells * num_predictors, 4],
-        name='predictions_out'
-    )
-
-    confidences_out = tf.reshape(
-        confidences,
-        [-1, num_cells * num_cells * num_predictors],
-        name='confidences_out'
-    )
-
+    ## OUTPUTS
+    outputs = _outputs(predictions, confidences, config)
+    
     # Inputs, Outputs, loss
-    return [X, y], [predictions_out, confidences_out], loss
+    return [X, y], outputs, loss
 
 
-def _generate_network(inputs, config):
+def _inputs(config):
+
+    X = tf.placeholder(
+        shape=[None, config['image_size'], config['image_size'], 3], 
+        dtype=tf.float32, 
+        name='X'
+    )
+
+    y = tf.placeholder(shape=[None, 5], dtype=tf.int64, name='y')
+
+    return X, y
+
+
+def _network(inputs, config):
     
     # Convolutional layers
     for idx, conf in enumerate(config['conv']):
@@ -197,6 +238,34 @@ def _generate_network(inputs, config):
         print(inputs)
 
     return inputs
+
+
+# predictions (b_s, S, S, B, 4)
+# confidences (b_s, S, S, B)
+def _outputs(predictions, confidences, config):
+
+    image_size = config['image_size']
+    num_cells = config['num_cells']
+    num_predictors = config['num_predictors']
+    
+    predictions_globalized = utils.uncenter(
+        utils.globalize(predictions, image_size),
+        name='predictions_globalized'
+    )
+
+    predictions_out = tf.reshape(
+        predictions_globalized,
+        [-1, num_cells * num_cells * num_predictors, 4],
+        name='predictions_out'
+    )
+
+    confidences_out = tf.reshape(
+        confidences,
+        [-1, num_cells * num_cells * num_predictors],
+        name='confidences_out'
+    )
+
+    return predictions_out, confidences_out
 
 
 def yolophem_loss(
