@@ -5,6 +5,75 @@ from caps.utils import norm
 from yolophem import utils
 
 
+config_v2 = {
+    'image_size': 448,
+    'num_cells': 7,
+    'num_predictors': 3,
+
+    # 448x448 -> 221x221
+    'conv': [
+        {
+            'filters': 256,
+            'kernel_size': 7,
+            'strides': 2,
+            'padding': 'VALID',
+            'activation': tf.nn.relu,
+        }
+    ],
+
+    # 221x221 -> 109x109
+    'primaryCaps': {
+        'filters': 16,
+        'dims': 8,
+        'kernel_size': 5,
+        'strides': 2,
+    },
+
+    'convCaps': [
+        
+        # 109x109 -> 53x53
+        {
+            'filters': 16,
+            'dims': 8,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 53x53 -> 25x25
+        {
+            'filters': 8,
+            'dims': 12,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 25x25 -> 11x11
+        {
+            'filters': 8,
+            'dims': 12,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 11x11 -> 9x9
+        {
+            'filters': 3,
+            'dims': 16,
+            'kernel_size': 3,
+            'strides': 1
+        },
+        
+        # 9x9 -> 7x7
+        {
+            'filters': 3,
+            'dims': 16,
+            'kernel_size': 3,
+            'strides': 1
+        },
+    ]
+}
+
+
 config_v1 = {
     'image_size': 448,
     'num_cells': 7,
