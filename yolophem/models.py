@@ -3,12 +3,89 @@ import tensorflow as tf
 from caps import layers
 from yolophem import utils
 
-def simplistic(
-    image_size, 
-    network_config, 
-    feature_size, 
-    num_cells, 
-    num_predictors):
+
+config_v1 = {
+    'image_size': 448,
+    'num_cells': 7,
+    'num_predictors': 3,
+
+    # 448x448 -> 221x221
+    'conv': [
+        {
+            'filters': 256,
+            'kernel_size': 7,
+            'strides': 2,
+            'padding': 'VALID',
+            'activation': tf.nn.relu,
+        }
+    ],
+
+    # 221x221 -> 221x221
+    'primaryCaps': {
+        'filters': 32,
+        'dims': 8,
+        'kernel_size': 1,
+        'strides': 1,
+    },
+
+    'convCaps': [
+        
+        # 221x221 -> 109x109
+        {
+            'filters': 16,
+            'dims': 16,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 109x109 -> 53x53
+        {
+            'filters': 16,
+            'dims': 16,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 53x53 -> 25x25
+        {
+            'filters': 8,
+            'dims': 24,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 25x25 -> 11x11
+        {
+            'filters': 8,
+            'dims': 24,
+            'kernel_size': 5,
+            'strides': 2
+        },
+        
+        # 11x11 -> 9x9
+        {
+            'filters': 3,
+            'dims': 32,
+            'kernel_size': 3,
+            'strides': 1
+        },
+        
+        # 9x9 -> 7x7
+        {
+            'filters': 3,
+            'dims': 32,
+            'kernel_size': 3,
+            'strides': 1
+        },
+    ]
+}
+
+
+def naive(config, feature_size):
+
+    image_size = config['image_size']
+    num_cells = config['num_cells']
+    num_predictors = config['num_predictors']
     
     ## INPUTS 
     X = tf.placeholder(
@@ -21,9 +98,8 @@ def simplistic(
 
 
     ## Network
-    network_output = _generate_network(X, network_config)
+    network_output = _generate_network(X, config)
     _, height, width, filters, dims = network_output.shape.as_list()
-
 
     network_output_flat = tf.reshape(
         network_output, 
@@ -65,15 +141,28 @@ def simplistic(
     )
 
     ## LOSS
-
     loss = yolophem_loss(predictions, confidences, y, image_size, name='loss')
 
+    ## MODEL OUTPUTS
+    predictions_globalized = utils.uncenter(
+        utils.globalize(predictions, image_size),
+        name='predictions_globalized'
+    )
 
-    ## MODEL PREDICTIONS
-    centered_outputs, sample_idx = utils.globalize(predictions, image_size)
-    outputs = utils.uncenter(centered_outputs)
+    predictions_out = tf.reshape(
+        predictions_globalized,
+        [-1, num_cells * num_cells * num_predictors, 4],
+        name='predictions_out'
+    )
 
-    return [X, y], [outputs, sample_idx], loss
+    confidences_out = tf.reshape(
+        confidences,
+        [-1, num_cells * num_cells * num_predictors],
+        name='confidences_out'
+    )
+
+    # Inputs, Outputs, loss
+    return [X, y], [predictions_out, confidences_out], loss
 
 
 def _generate_network(inputs, config):
@@ -85,6 +174,8 @@ def _generate_network(inputs, config):
             **conf, 
             name='conv' + str(idx + 1)
         )
+        
+        print(inputs)
 
     # Primary capsules
     inputs = layers.primaryCaps(
@@ -93,6 +184,8 @@ def _generate_network(inputs, config):
         name='primaryCaps'
     )
 
+    print(inputs)
+
     # Convolutional capsules
     for idx, conf in enumerate(config['convCaps']):
         inputs = layers.convCaps(
@@ -100,6 +193,8 @@ def _generate_network(inputs, config):
             **conf,
             name='convCaps' + str(idx + 1)
         )
+
+        print(inputs)
 
     return inputs
 

@@ -128,28 +128,7 @@ def globalize(boxes, image_extent, name=None):
             name='boxes_globalized'
         )
 
-        boxes_globalized_long = tf.reshape(
-            boxes_globalized,
-            [-1, 4],
-            name='boxes_globalized_long'
-        )
-
-        # Compute sample index for long representation
-        sample_range = tf.range(batch_size, name='sample_range')
-
-        sample_index = tf.tile(
-            tf.reshape(sample_range, [batch_size, 1, 1, 1]),
-            multiples=[1, grid_resolution, grid_resolution, num_predictors],
-            name='sample_index'
-        )
-
-        sample_index_long = tf.reshape(
-            sample_index,
-            [-1],
-            name='sample_index_long'
-        )
-
-    return boxes_globalized_long, sample_index_long
+    return boxes_globalized
 
 
 # Assumes centered boxes
@@ -187,4 +166,13 @@ def intersection_over_union(boxes_a, boxes_b, epsilon=1e-7, name=None):
         )
 
     return iou
+
+# Assumes non-centered coordinates
+# ground, prediction are lists containing ground truth and predicted boxes for
+# one sample image in each entries, given as a (#boxes, 4) numpy array
+def average_precision(ground, prediction, iou_threshold=0.5):
+    pass
+
+    
+
 
