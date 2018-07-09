@@ -3,6 +3,8 @@ from collections import namedtuple
 from os.path import exists, join
 from zipfile import ZipFile
 
+import numpy as np
+
 from data.dataset import StreamDataset
 from data.utils import (
     force_dir, 
@@ -133,7 +135,7 @@ def _preprocess_annotations(annotations_file_path, source_path):
                 img_faces.append((face.x, face.y, face.width, face.height))
 
             img_paths.append(join(source_path, img_path))
-            faces.append(img_faces)
+            faces.append(np.array(img_faces))
 
     return img_paths, faces
 
