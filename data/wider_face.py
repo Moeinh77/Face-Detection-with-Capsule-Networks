@@ -4,6 +4,7 @@ from os.path import exists, join
 from zipfile import ZipFile
 
 import numpy as np
+from PIL import Image
 
 from data.dataset import StreamDataset
 from data.utils import (
@@ -33,7 +34,7 @@ Face = namedtuple('Face',
     ]
 )
 
-def load_data(datasets_path='datasets'):
+def load_data(datasets_path='datasets', stream=True):
     data_path = join(datasets_path, 'wider_face')
     metadata_path = join(data_path, 'metadata.pickle')
 
@@ -132,7 +133,16 @@ def _preprocess_annotations(annotations_file_path, source_path):
 
                 # Parse the entire face (but only save the bounding box for now)
                 face = Face(*map(int, face_str.split(' ')))
-                img_faces.append((face.x, face.y, face.width, face.height))
+                
+                # PATCH: Faces 10969 and 12381 contain negative bounding box
+                # coordinates. Since this causes numerical issues, we discard
+                # them
+                box = (face.x, face.y, face.width, face.height)
+                
+                if any(map(lambda x: x < 0, box)):
+                    continue
+
+                img_faces.append(box)
 
             img_paths.append(join(source_path, img_path))
             faces.append(np.array(img_faces))

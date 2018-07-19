@@ -54,4 +54,16 @@ class Elongate:
 
         return images, labels_long
 
-        
+
+class Standardize:
+
+    def __init__(self, min=0, max=255):
+        self.min = min
+        self.max = max
+
+
+    def __call__(self, images, labels):
+        scale_factor = self.max - self.min
+        images_standardized = [(im - self.max) / scale_factor for im in images]
+
+        return images_standardized, labels

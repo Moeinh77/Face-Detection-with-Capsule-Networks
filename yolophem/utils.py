@@ -166,13 +166,3 @@ def intersection_over_union(boxes_a, boxes_b, epsilon=1e-7, name=None):
         )
 
     return iou
-
-# Assumes non-centered coordinates
-# ground, prediction are lists containing ground truth and predicted boxes for
-# one sample image in each entries, given as a (#boxes, 4) numpy array
-def average_precision(ground, prediction, iou_threshold=0.5):
-    pass
-
-    
-
-

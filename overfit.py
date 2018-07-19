@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from utils import reset, evaluate
 from data import wider_face
-from data.transforms import AffineWarp, Elongate
+from data.transforms import AffineWarp, Elongate, Standardize
 from yolophem import models
 from caps import utils
 
@@ -13,18 +13,23 @@ tf.__dict__["gradients"] = memory_saving_gradients.gradients_memory
 
 ## SETTINGS
 
-OVERFIT_SAMPLES = 1
+OVERFIT_SAMPLES = 8
 MODEL = models.naive
-CONFIG = models.config_v2
+CONFIG = models.config_small
 PARAMS = { 'feature_size': 512 }
-STEP_SIZE = 1e-3
+STEP_SIZE = 1e-2
 NUM_EPOCHS = 1000
 
 if __name__ == '__main__':
 
     # Get the data    
     train, _, _ = wider_face.load_data()
-    data = train.batch(OVERFIT_SAMPLES, [AffineWarp(448, 448), Elongate()])
+    data = train.batch(OVERFIT_SAMPLES, [
+        AffineWarp(CONFIG['image_size'], CONFIG['image_size']), 
+        Standardize(0, 255),
+        Elongate()
+        ]
+    )
     
     images, labels = next(data)
 
@@ -49,10 +54,11 @@ if __name__ == '__main__':
         init.run()
         print('Initialized')
 
-        loss_val = sess.run(loss, feed_dict=feed_dict)
-        print(loss_val)
+        ys, preds = sess.run([y, predictions], feed_dict=feed_dict)
+        print(ys.shape)
+        print(preds.shape)
 
-         #for epoch in range(NUM_EPOCHS):
+        #for epoch in range(NUM_EPOCHS):
 
             # Run a train step           
             #sess.run(train_step, feed_dict=feed_dict)
