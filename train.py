@@ -20,11 +20,11 @@ tf.__dict__['gradients'] = memory_saving_gradients.gradients_memory
 
 ## SETTINGS
 
-BATCH_SIZE = 8
-MODEL = models.naive
+BATCH_SIZE = 16
+MODEL = models.adapted
 CONFIG = models.config_small
-PARAMS = { 'feature_size': 512 }
-STEP_SIZE = 1e-4
+PARAMS = {} #{ 'feature_size': 512 }
+STEP_SIZE = 1e-3
 NUM_EPOCHS = 50
 REPORT_EVERY = 10
 EXPERIMENT = datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
