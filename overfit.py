@@ -50,20 +50,14 @@ if __name__ == '__main__':
     init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
-        print('Start session')
         init.run()
-        print('Initialized')
 
-        ys, preds = sess.run([y, predictions], feed_dict=feed_dict)
-        print(ys.shape)
-        print(preds.shape)
-
-        #for epoch in range(NUM_EPOCHS):
+        for epoch in range(NUM_EPOCHS):
 
             # Run a train step           
-            #sess.run(train_step, feed_dict=feed_dict)
+            sess.run(train_step, feed_dict=feed_dict)
 
             # Evaluate loss
-            #epoch_loss = sess.run([loss], feed_dict=feed_dict)
+            epoch_loss = sess.run([loss], feed_dict=feed_dict)
 
-            #print('[{}/{}] Loss: {}'.format(epoch+1, NUM_EPOCHS, epoch_loss))
+            print('[{}/{}] Loss: {}'.format(epoch+1, NUM_EPOCHS, epoch_loss))

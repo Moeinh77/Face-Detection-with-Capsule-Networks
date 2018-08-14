@@ -1,6 +1,6 @@
 from datetime import datetime
 from os import makedirs
-from os.path import join, isfile
+from os.path import join, isfile, exists
 import pickle
 
 import tensorflow as tf
@@ -19,15 +19,25 @@ tf.__dict__['gradients'] = memory_saving_gradients.gradients_memory
 
 
 ## SETTINGS
-
 BATCH_SIZE = 16
-MODEL = models.adapted
+MODEL = models.naive
 CONFIG = models.config_small
-PARAMS = {} #{ 'feature_size': 512 }
-STEP_SIZE = 1e-3
+PARAMS = { 'feature_size': 512 }
+LEARNING_RATES = [(30, 1e-3), (20, 1e-4)]
 NUM_EPOCHS = 50
 REPORT_EVERY = 10
-EXPERIMENT = datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
+EXPERIMENT = 'yolophem_A_small_2' #datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
+
+
+def lr_schedule(epoch):
+    epochs_total = 0
+
+    for (epochs, lr) in LEARNING_RATES:
+        epochs_total += epochs
+
+        if epochs_total > epoch:
+            return lr
+            
 
 def report(mode, iteration, num_iterations, loss):
     print(
@@ -73,15 +83,20 @@ if __name__ == '__main__':
     [X, y], [predictions, confidences], loss = MODEL(CONFIG, **PARAMS)
     
     # Minimize loss
-    optimizer = tf.train.AdamOptimizer(STEP_SIZE)
+    learning_rate = tf.placeholder(tf.float32)
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+
     train_step = optimizer.minimize(loss, name='train_step')
     
     # Capture trainign prorestraining
     logdir = join('./experiments', EXPERIMENT)
-    makedirs(logdir)
-    
     checkpoint_path = join(logdir, 'parameters')
 
+    new_experiment = not exists(logdir)
+
+    if new_experiment:
+        makedirs(logdir)
+    
     saver = tf.train.Saver()
     logger = Logger(logdir)
 
@@ -95,12 +110,26 @@ if __name__ == '__main__':
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
-        init.run()
-        print('Initialized')
+    
+        if new_experiment:
+            init.run()
 
-        best_val_loss = np.infty
+            start_epoch = 0
+            best_val_loss = np.infty
+            print('Initialized')
+        else:
+            saver.restore(sess, checkpoint_path)
+    
+            val_epochs, val_losses = np.split(
+                np.array(logger.log['VAL']), 2, axis=1
+            )
 
-        for epoch in range(NUM_EPOCHS):
+            start_epoch = np.max(val_epochs.astype(np.int))
+            best_val_loss = np.min(val_losses) 
+            print('Model restored from epoch {}'.format(start_epoch))
+            
+
+        for epoch in range(start_epoch, NUM_EPOCHS):
             print('[Epoch {}/{}]'.format(epoch + 1, NUM_EPOCHS))
 
             #################### TRAIN #####################
@@ -114,8 +143,15 @@ if __name__ == '__main__':
             )
 
             train_losses = []
+                   
+            lr = lr_schedule(epoch)
+
             for iteration, (images, labels) in enumerate(train_batches):
-                feed_dict = { X: images, y: labels }
+                feed_dict = { 
+                    X: images, 
+                    y: labels, 
+                    learning_rate: lr 
+                }
 
                 # Perform a training step
                 sess.run(train_step, feed_dict=feed_dict)
@@ -129,9 +165,6 @@ if __name__ == '__main__':
                 
             # Log the last batch loss for 
             epoch_train_loss = np.mean(train_losses)
-            
-            logger.add('TRAIN', epoch + 1, epoch_train_loss)
-            logger.write()
             
             print(
                 '\r[TRAIN] Loss: {:.6f}'.format(epoch_train_loss), 
@@ -170,6 +203,7 @@ if __name__ == '__main__':
                 saver.save(sess, checkpoint_path)
                 best_val_loss = epoch_val_loss
 
+            logger.add('TRAIN', epoch + 1, epoch_train_loss)
             logger.add('VAL', epoch + 1, epoch_val_loss)
             logger.write()
             
