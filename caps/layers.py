@@ -2,10 +2,6 @@ import tensorflow as tf
 
 
 def primaryCaps(inputs, filters, dims, kernel_size, strides=1, name=None):
-    """Primary capsule layer
-    
-    TODO: expand documentation
-    """
     with tf.variable_scope(name, default_name='primaryCaps'):
 
         # Assert that input is a tensor of feature maps
@@ -41,10 +37,6 @@ def primaryCaps(inputs, filters, dims, kernel_size, strides=1, name=None):
 
 
 def denseCaps(inputs, caps, dims, iterations=2, name=None):
-    """Densely-connected capsule layer.
-
-    TODO: expand documentation
-    """
     with tf.variable_scope(name, default_name='denseCaps'):
 
         # There are two possible inputs to a denseCaps layer:
@@ -113,8 +105,6 @@ def denseCaps(inputs, caps, dims, iterations=2, name=None):
 
 
 def denseDecoder(inputs, indices, layers, name=None):
-    """Reconstructs inputs from capsule activations"""
-
     with tf.variable_scope(name, default_name='denseDecoder'):
 
         _, caps, dims = inputs.shape
@@ -179,21 +169,6 @@ def convCaps(
         padding='VALID',
         iterations=2, 
         name=None):
-    """2D convolutional capsule layer.
-
-    TODO: expand documentation
-
-    Arguments:
-    inputs -- a tensor of shape (batch_size, width, height, filters_in, dims_in)
-        containing filters of lower-level capsules.
-    filters -- number of output filters in this layer
-    dims -- dimensionality of output capsules in this layer
-    rf_size -- size of the receptive field of a higher-level capsule, similar
-        to the kernel size in a convolutional neural layer
-    rf_sride -- stride of the receptive field in the lower-level layer, similar
-        to the stride in a convolutional neural layer
-    iterations -- number of routing iterations
-    """
     with tf.variable_scope(name, default_name='convCaps'):
 
         tf.assert_rank(
@@ -215,7 +190,6 @@ def convCaps(
 
     return outputs
 
-# Proto-Documentation:
 # inputs = input tensor (batch_size, height, width, input_filters, input_dim)
 # filters = no. of convolutional filter banks in this convCaps layer
 # dims = dimensionality of capsules within each filter
@@ -267,10 +241,7 @@ def _caps_conv2d(
 
 
 def _predict(inputs, filters_out, dims_out, kernel_size, strides, padding):
-    """Compute predictions for higher-level capsules on receptive fields"""
     with tf.variable_scope('predictions'):
-
-        # TODO improve documentation
 
         # Extract shape of the input tensor
         batch_size = tf.shape(inputs)[0]
@@ -357,7 +328,6 @@ def _predict(inputs, filters_out, dims_out, kernel_size, strides, padding):
 def _route(predictions, iterations):
     with tf.variable_scope('routing'):
 
-        # TODO improve documentation
 
         batch_size = tf.shape(predictions)[0]
         _, height, width, filters_out, caps_per_patch, dims_out, _ = predictions.shape.as_list()
@@ -443,9 +413,6 @@ def _route(predictions, iterations):
 
 
 def norm(s, axis=-1, epsilon=1e-7, keepdims=False, name=None):
-    '''Numerically stable vector norm'''
-    # TODO expand documentaiton
-    
     with tf.name_scope(name, default_name='safe_norm'):
 
         # Compute ||s|| =approx= sqrt(||s||^2 + epsilon) in order to avoid
@@ -465,9 +432,6 @@ def norm(s, axis=-1, epsilon=1e-7, keepdims=False, name=None):
 
 
 def squash(s, axis=-1, epsilon=1e-7, name=None):
-    """Implements the squash nonlinearity."""
-    # TODO expand documentation
-
     with tf.variable_scope(name, default_name='squash'):
         
         squared_norm = tf.reduce_sum(

@@ -12,11 +12,12 @@ from data.transforms import AffineWarp, Elongate, Standardize
 from caps import utils 
 from yolophem import models
 
-from gradient_checkpointing import memory_saving_gradients
-
-# Monkey-patch tf.gradients to memory_saving_gradients
-tf.__dict__['gradients'] = memory_saving_gradients.gradients_memory
-
+## UNCOMMENT TO USE GRADIENT CHECKPOINTING ##
+#
+#from gradient_checkpointing import memory_saving_gradients
+#tf.__dict__['gradients'] = memory_saving_gradients.gradients_memory
+#
+##############################################
 
 ## SETTINGS
 BATCH_SIZE = 16

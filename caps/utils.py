@@ -15,7 +15,6 @@ def batch(data, labels, batch_size):
 
 def norm(s, axis=-1, epsilon=1e-7, keepdims=False, name=None):
     '''Numerically stable vector norm'''
-    # TODO expand documentaiton
     
     with tf.name_scope(name, default_name='safe_norm'):
 
@@ -37,7 +36,6 @@ def norm(s, axis=-1, epsilon=1e-7, keepdims=False, name=None):
 
 def squash(s, axis=-1, epsilon=1e-7, name=None):
     """Implements the squash nonlinearity."""
-    # TODO expand documentation
 
     with tf.variable_scope(name, default_name='squash'):
         

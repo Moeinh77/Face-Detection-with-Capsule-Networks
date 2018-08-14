@@ -10,7 +10,6 @@ def margin_loss(
     lambda_=0.5, 
     name=None):
     """Implements the margin loss as described in [Hinton, 2017]."""
-    # TODO expand documentaiton
 
     with tf.variable_scope(name, default_name="margin_loss"):
         tf.assert_rank(
@@ -62,7 +61,6 @@ def margin_loss(
 
 def reconstruction_loss(inputs, reconstructions, name=None):
     with tf.variable_scope(name, default_name='reconstruction_loss'):
-        # TODO check input dimensionality
         
         # Flatten inputs
         dim = reduce(lambda x,y: x*y, inputs.shape[1:])
