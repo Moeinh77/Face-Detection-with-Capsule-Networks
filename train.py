@@ -27,7 +27,7 @@ PARAMS = { 'feature_size': 512 }
 LEARNING_RATES = [(30, 1e-3), (20, 1e-4)]
 NUM_EPOCHS = 50
 REPORT_EVERY = 10
-EXPERIMENT = 'yolophem_A_small_2' #datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
+EXPERIMENT = 'yolophem_A_small' #datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')
 
 
 def lr_schedule(epoch):
